@@ -12,7 +12,7 @@ function Door({ side, opening, reduce }) {
       className={`absolute top-0 h-full w-1/2 overflow-hidden bg-forest-900 ${
         left ? 'left-0 origin-left' : 'right-0 origin-right'
       }`}
-      style={{ backfaceVisibility: 'hidden' }}
+      style={{ backfaceVisibility: 'hidden', willChange: 'transform' }}
       animate={opening ? (reduce ? { opacity: 0 } : { rotateY: left ? -104 : 104 }) : { rotateY: 0 }}
       transition={{ duration: reduce ? 0.4 : 1.6, ease: EASE, delay: reduce ? 0 : 0.35 }}
     >
@@ -51,7 +51,8 @@ export default function IntroGate({ settings, dateLine, onReveal, onOpen }) {
   const open = () => {
     if (opening) return;
     setOpening(true);
-    setTimeout(onReveal, reduce ? 100 : 550);
+    // The hero starts once the doors are mostly open, so its animations don't compete with the swing.
+    setTimeout(onReveal, reduce ? 100 : 1100);
     setTimeout(onOpen, reduce ? 450 : 1900);
   };
 
@@ -81,7 +82,7 @@ export default function IntroGate({ settings, dateLine, onReveal, onOpen }) {
       {/* warm light spilling through the seam as the doors part */}
       <motion.div
         aria-hidden="true"
-        className="absolute inset-y-0 left-1/2 w-[140vw] -translate-x-1/2 bg-[radial-gradient(50%_60%_at_50%_50%,rgba(255,240,200,0.95),rgba(239,223,186,0.55)_45%,transparent_75%)]"
+        className="absolute inset-y-0 left-1/2 w-[140vw] -translate-x-1/2 will-change-[transform,opacity] bg-[radial-gradient(50%_60%_at_50%_50%,rgba(255,240,200,0.95),rgba(239,223,186,0.55)_45%,transparent_75%)]"
         initial={{ opacity: 0, scaleX: 0.02 }}
         animate={opening && !reduce ? { opacity: [0, 1, 0], scaleX: [0.02, 0.6, 1] } : { opacity: 0, scaleX: 0.02 }}
         transition={{ duration: 1.9, ease: 'easeOut', times: [0, 0.35, 1] }}
@@ -90,7 +91,7 @@ export default function IntroGate({ settings, dateLine, onReveal, onOpen }) {
       <Door side="left" opening={opening} reduce={reduce} />
       <Door side="right" opening={opening} reduce={reduce} />
 
-      {!reduce && <PetalBurst play={opening} />}
+      {!reduce && <PetalBurst play={opening} count={18} />}
 
       <motion.div
         className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center"

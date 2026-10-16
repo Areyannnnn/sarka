@@ -140,7 +140,7 @@ export default function Home() {
       <ScrollProgress visible={revealed} />
       <Navbar settings={settings} revealed={revealed} />
       <main className="relative z-10">
-        <Hero settings={settings} events={events} revealed={revealed} />
+        <Hero settings={settings} events={events} revealed={revealed} settled={!gateOpen} />
         <WelcomeLetter settings={settings} />
         <Story settings={settings} />
         <Interlude settings={settings} events={events} />

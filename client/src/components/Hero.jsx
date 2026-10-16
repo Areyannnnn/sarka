@@ -24,8 +24,8 @@ function Letters({ text, className = '', delay = 0 }) {
           key={i}
           className="inline-block"
           variants={{
-            hidden: { opacity: 0, y: '0.3em', filter: 'blur(6px)' },
-            show: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 1.2, ease: EASE } },
+            hidden: { opacity: 0, y: '0.3em' },
+            show: { opacity: 1, y: 0, transition: { duration: 1.2, ease: EASE } },
           }}
         >
           {char === ' ' ? ' ' : char}
@@ -39,7 +39,7 @@ function Letters({ text, className = '', delay = 0 }) {
 function ArchOutline({ ready }) {
   const arch = (r) => `M ${200 - r} 500 V 200 A ${r} ${r} 0 0 1 ${200 + r} 200 V 500`;
   return (
-    <svg viewBox="0 0 400 500" className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
+    <svg viewBox="0 0 400 500" className="pointer-events-none absolute inset-0 h-full w-full overflow-visible will-change-transform" aria-hidden="true">
       {[226, 238].map((r, i) => (
         <motion.path
           key={r}
@@ -57,7 +57,7 @@ function ArchOutline({ ready }) {
   );
 }
 
-export default function Hero({ settings, events, revealed }) {
+export default function Hero({ settings, events, revealed, settled = true }) {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
   const imageY = useTransform(scrollYProgress, [0, 1], ['0%', '9%']);
@@ -157,7 +157,8 @@ export default function Hero({ settings, events, revealed }) {
           }}
           className="relative mx-auto w-full max-w-[min(420px,74vw)] lg:max-w-[440px]"
         >
-          <Mandala className="pointer-events-none absolute left-1/2 top-[40%] -z-10 w-[165%] max-w-none -translate-x-1/2 -translate-y-1/2 text-gold-400/25" />
+          {/* Own layer (will-change) so the frame lines and ticking countdown beside it never force it to repaint */}
+          <Mandala className="pointer-events-none absolute left-1/2 top-[40%] -z-10 w-[165%] max-w-none -translate-x-1/2 -translate-y-1/2 text-gold-400/25 will-change-transform" />
           <ArchOutline ready={ready} />
           <div className="relative aspect-[4/5] overflow-hidden rounded-t-full bg-ivory-200 shadow-[0_50px_90px_-45px_rgba(19,58,43,0.7)]">
             {settings?.heroImageUrl && (
@@ -176,14 +177,14 @@ export default function Hero({ settings, events, revealed }) {
             <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_55%,rgba(12,39,28,0.3))]" />
             <div className="absolute inset-3 rounded-t-full border border-ivory-50/45" />
           </div>
-          {ready && <FloralArch />}
+          {ready && settled && <FloralArch />}
 
           {settings?.weddingDate && (
             <motion.div
               initial={{ opacity: 0, y: 14 }}
               animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 14 }}
               transition={{ duration: 1, ease: EASE, delay: 2 }}
-              className="absolute -bottom-7 left-1/2 z-10 -translate-x-1/2"
+              className="absolute -bottom-7 left-1/2 z-10 -translate-x-1/2 will-change-transform"
             >
               <Countdown targetDate={settings.weddingDate} variant="pill" />
             </motion.div>
