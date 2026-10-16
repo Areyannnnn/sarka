@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://sarka.onrender.com/api/:path*" },
+    { "source": "/uploads/:path*", "destination": "https://sarka.onrender.com/uploads/:path*" },
+    { "source": "/((?!assets/|images/|favicon\\.svg).*)", "destination": "/index.html" }
+  ]
+}
