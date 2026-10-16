@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { motion, useScroll, useSpring, useInView, useMotionValue, useMotionValueEvent, useTransform, animate } from 'framer-motion';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, useScroll, useSpring, useInView, useMotionValue, useMotionValueEvent, useTransform, animate } from 'framer-motion';
 import { PiAirplaneTiltLight } from 'react-icons/pi';
 import { Heart, SectionHeading } from './Ornaments';
 import Lightbox from './Lightbox';
@@ -100,7 +100,8 @@ function useHeartReached(ref, progress, timelineRef) {
 
   useMotionValueEvent(progress, 'change', (v) => {
     if (Math.abs(v - at.current) < 0.04) measure();
-    const now = v >= at.current;
+    // Strictly past it: the first marker sits at 0, where the heart starts.
+    const now = v > at.current + 0.002;
     setReached((was) => (was === now ? was : now));
   });
 
@@ -323,36 +324,155 @@ function DistanceMeter() {
   );
 }
 
-// Each chapter's number lights up as the travelling heart reaches it, and dims again if the
-// reader scrolls back above it.
-function Marker({ number, progress, timelineRef }) {
-  const ref = useRef(null);
-  const reached = useHeartReached(ref, progress, timelineRef);
+const SPARKS = Array.from({ length: 10 }, (_, i) => ({
+  angle: (i / 10) * Math.PI * 2 + 0.3,
+  distance: 34 + (i % 3) * 10,
+  color: ['#cfa75e', '#df8f84', '#2f7254', '#e2c78f', '#f0b8ab'][i % 5],
+}));
 
+// When the heart arrives, the number pops through gold and blush to green and throws a few sparks;
+// its outer ring "breaks" away (the two halves are drawn by ChapterEmbrace).
+function Marker({ number, reached, markerRef }) {
   return (
     <motion.div
-      ref={ref}
-      className="relative z-10 grid h-14 w-14 place-items-center rounded-full border font-display text-xl italic shadow-[0_0_0_8px_var(--color-ivory-100)]"
+      ref={markerRef}
+      className="relative z-10 grid h-14 w-14 place-items-center rounded-full border border-gold-400 font-display text-xl italic shadow-[0_0_0_8px_var(--color-ivory-100)]"
       initial={false}
       animate={
         reached
-          ? { scale: [1, 1.32, 1], backgroundColor: '#1b4b37', color: '#f7eedb', borderColor: '#cfa75e' }
-          : { scale: 1, backgroundColor: '#fbf7ef', color: '#1b4b37', borderColor: '#cfa75e' }
+          ? {
+              scale: [1, 1.45, 0.92, 1],
+              backgroundColor: ['#fbf7ef', '#cfa75e', '#df8f84', '#1b4b37'],
+              color: ['#1b4b37', '#fffdf8', '#fffdf8', '#f7eedb'],
+            }
+          : { scale: 1, backgroundColor: '#fbf7ef', color: '#1b4b37' }
       }
-      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: reached ? 0.9 : 0.4, ease: [0.22, 1, 0.36, 1] }}
     >
       {number}
-      <span aria-hidden="true" className="absolute -inset-1.5 rounded-full border border-gold-300/50" />
-      {reached && (
-        <motion.span
-          aria-hidden="true"
-          className="absolute inset-0 rounded-full border-2 border-gold-400"
-          initial={{ scale: 1, opacity: 0.8 }}
-          animate={{ scale: 1.9, opacity: 0 }}
-          transition={{ duration: 0.9, ease: 'easeOut' }}
-        />
-      )}
+      <motion.span
+        aria-hidden="true"
+        className="absolute -inset-1.5 rounded-full border border-gold-300/60"
+        initial={false}
+        animate={{ opacity: reached ? 0 : 1, scale: reached ? 1.15 : 1 }}
+        transition={{ duration: 0.3, delay: reached ? 0.3 : 0 }}
+      />
+      {reached &&
+        SPARKS.map((spark, i) => (
+          <motion.span
+            key={i}
+            aria-hidden="true"
+            className="absolute left-1/2 top-1/2 -ml-1 -mt-1 h-2 w-2 rounded-full"
+            style={{ background: spark.color }}
+            initial={{ x: 0, y: 0, opacity: 1, scale: 0.4 }}
+            animate={{ x: Math.cos(spark.angle) * spark.distance, y: Math.sin(spark.angle) * spark.distance, opacity: 0, scale: 1 }}
+            transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+          />
+        ))}
     </motion.div>
+  );
+}
+
+const BRACKETS = {
+  left: 'M19 1 C 3 18, 3 82, 19 99',
+  right: 'M1 1 C 17 18, 17 82, 1 99',
+};
+
+// The marker's broken ring: its two halves fly out to either side of the chapter's text and
+// stretch into curved brackets, then a soft wash sweeps in from both of them to meet behind
+// the words. Positions are measured within the chapter's <li>.
+function ChapterEmbrace({ reached, liRef, markerRef, textRef }) {
+  const [geo, setGeo] = useState(null);
+
+  const measure = useCallback(() => {
+    const li = liRef.current?.getBoundingClientRect();
+    const m = markerRef.current?.getBoundingClientRect();
+    if (!li || !m || !textRef.current) return;
+    // The text's own extent (it is right-aligned on alternate chapters), not its column's.
+    const range = document.createRange();
+    range.selectNodeContents(textRef.current);
+    const t = range.getBoundingClientRect();
+    const narrow = window.innerWidth < 640;
+    const pad = narrow ? 10 : 22;
+    const w = narrow ? 12 : 18;
+    const maxRight = window.innerWidth - li.left - w - 4; // keep the right bracket on screen
+    setGeo({
+      mx: m.left - li.left + m.width / 2,
+      my: m.top - li.top + m.height / 2,
+      r: m.width / 2 + 6,
+      left: t.left - li.left - pad - w,
+      right: Math.min(t.right - li.left + pad, maxRight),
+      top: t.top - li.top - 16,
+      height: t.height + 32,
+      w,
+    });
+  }, [liRef, markerRef, textRef]);
+
+  useLayoutEffect(() => {
+    if (!reached) return undefined;
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(liRef.current);
+    return () => observer.disconnect();
+  }, [reached, measure, liRef]);
+
+  const L = geo ? geo.left + geo.w / 2 : 0;
+  const R = geo ? geo.right + geo.w / 2 : 0;
+  const C = (L + R) / 2;
+
+  return (
+    <AnimatePresence>
+      {reached && geo && (
+        <motion.div
+          key="embrace"
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          exit={{ opacity: 0, transition: { duration: 0.4 } }}
+        >
+          {[
+            { side: 'left', left: L, width: C - L, origin: 'origin-left rounded-l-[1.75rem]' },
+            { side: 'right', left: C, width: R - C, origin: 'origin-right rounded-r-[1.75rem]' },
+          ].map((half) => (
+            <motion.div
+              key={half.side}
+              className={`absolute bg-gold-100/70 ${half.origin}`}
+              style={{ left: half.left, width: half.width, top: geo.top, height: geo.height }}
+              initial={{ scaleX: 0, opacity: 0 }}
+              animate={{ scaleX: 1, opacity: 1 }}
+              transition={{ duration: 0.8, delay: 1, ease: EASE }}
+            />
+          ))}
+          {['left', 'right'].map((side) => (
+            <motion.svg
+              key={side}
+              viewBox="0 0 20 100"
+              preserveAspectRatio="none"
+              className="absolute overflow-visible"
+              initial={{
+                left: side === 'left' ? geo.mx - geo.r : geo.mx,
+                top: geo.my - geo.r,
+                width: geo.r,
+                height: geo.r * 2,
+                opacity: 0,
+              }}
+              animate={{ left: side === 'left' ? geo.left : geo.right, top: geo.top, width: geo.w, height: geo.height, opacity: 1 }}
+              transition={{ delay: 0.35, duration: 0.95, ease: [0.65, 0, 0.35, 1], opacity: { delay: 0.3, duration: 0.15 } }}
+            >
+              <motion.path
+                d={BRACKETS[side]}
+                fill="none"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+                initial={{ stroke: '#df8f84' }}
+                animate={{ stroke: '#cfa75e' }}
+                transition={{ duration: 1, delay: 0.5 }}
+              />
+            </motion.svg>
+          ))}
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -362,13 +482,20 @@ function Chapter({ chapter, flip, names, onOpen, progress, timelineRef }) {
   else if (chapter.feature === 'boarding-pass') media = <BoardingPass names={names} progress={progress} timelineRef={timelineRef} />;
   else if (chapter.feature === 'distance') media = <DistanceMeter />;
 
+  const liRef = useRef(null);
+  const markerRef = useRef(null);
+  const textRef = useRef(null);
+  const reached = useHeartReached(markerRef, progress, timelineRef);
+
   return (
-    <li className="grid grid-cols-[56px_1fr] gap-x-5 gap-y-12 lg:grid-cols-[1fr_96px_1fr] lg:gap-x-12">
+    <li ref={liRef} className="relative grid grid-cols-[56px_1fr] gap-x-5 gap-y-12 lg:grid-cols-[1fr_96px_1fr] lg:gap-x-12">
+      <ChapterEmbrace reached={reached} liRef={liRef} markerRef={markerRef} textRef={textRef} />
       <div className="col-start-1 row-start-1 flex justify-center lg:col-start-2">
-        <Marker number={chapter.number} progress={progress} timelineRef={timelineRef} />
+        <Marker number={chapter.number} reached={reached} markerRef={markerRef} />
       </div>
       <motion.div
-        className={`col-start-2 row-start-1 pt-1 ${flip ? 'lg:col-start-3' : 'lg:col-start-1 lg:text-right'}`}
+        ref={textRef}
+        className={`relative z-10 col-start-2 row-start-1 pt-1 ${flip ? 'lg:col-start-3' : 'lg:col-start-1 lg:text-right'}`}
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.5 }}
