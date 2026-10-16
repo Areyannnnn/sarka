@@ -3,6 +3,7 @@ import Event from '../models/Event.js';
 import Comment from '../models/Comment.js';
 import { upload } from '../middleware/upload.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
+import { requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -11,21 +12,21 @@ router.get('/', asyncHandler(async (req, res) => {
   res.json(events);
 }));
 
-router.post('/', upload.single('image'), asyncHandler(async (req, res) => {
+router.post('/', requireAdmin, upload.single('image'), asyncHandler(async (req, res) => {
   const data = { ...req.body };
   if (req.file) data.imageUrl = `/uploads/${req.file.filename}`;
   const event = await Event.create(data);
   res.status(201).json(event);
 }));
 
-router.put('/:id', upload.single('image'), asyncHandler(async (req, res) => {
+router.put('/:id', requireAdmin, upload.single('image'), asyncHandler(async (req, res) => {
   const data = { ...req.body };
   if (req.file) data.imageUrl = `/uploads/${req.file.filename}`;
   const event = await Event.findByIdAndUpdate(req.params.id, data, { new: true, runValidators: true });
   res.json(event);
 }));
 
-router.delete('/:id', asyncHandler(async (req, res) => {
+router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
   await Event.findByIdAndDelete(req.params.id);
   await Comment.deleteMany({ eventId: req.params.id });
   res.json({ ok: true });

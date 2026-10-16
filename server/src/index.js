@@ -9,12 +9,15 @@ import settingsRouter from './routes/settings.js';
 import eventsRouter from './routes/events.js';
 import rsvpsRouter from './routes/rsvps.js';
 import commentsRouter from './routes/comments.js';
+import adminRouter from './routes/admin.js';
 import { errorHandler } from './middleware/asyncHandler.js';
 
 dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
+// Render (and most hosts) sit behind a proxy; this makes req.ip the visitor's address for the login limiter.
+app.set('trust proxy', 1);
 
 app.use(cors());
 app.use(express.json());
@@ -24,6 +27,7 @@ app.use('/api/settings', settingsRouter);
 app.use('/api/events', eventsRouter);
 app.use('/api/rsvps', rsvpsRouter);
 app.use('/api/comments', commentsRouter);
+app.use('/api/admin', adminRouter);
 
 app.use(errorHandler);
 

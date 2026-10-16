@@ -2,6 +2,55 @@ import axios from 'axios';
 
 const api = axios.create({ baseURL: '/api' });
 
+// ---- Admin session: the token from /api/admin/login rides along on every request.
+const TOKEN_KEY = 'wedding-admin-token';
+const store = {
+  get() {
+    try {
+      return localStorage.getItem(TOKEN_KEY);
+    } catch {
+      return null;
+    }
+  },
+  set(value) {
+    try {
+      if (value) localStorage.setItem(TOKEN_KEY, value);
+      else localStorage.removeItem(TOKEN_KEY);
+    } catch {
+      // storage unavailable: the session just won't survive a reload
+    }
+  },
+};
+let adminToken = store.get();
+
+api.interceptors.request.use((config) => {
+  if (adminToken) config.headers.Authorization = `Bearer ${adminToken}`;
+  return config;
+});
+
+// An expired or rejected token signs the dashboard out (it listens for this event).
+api.interceptors.response.use(undefined, (error) => {
+  if (error.response?.status === 401 && adminToken) {
+    adminToken = null;
+    store.set(null);
+    window.dispatchEvent(new Event('admin-signed-out'));
+  }
+  return Promise.reject(error);
+});
+
+export const hasAdminSession = () => Boolean(adminToken);
+export const adminLogin = (password) =>
+  api.post('/admin/login', { password }).then((r) => {
+    adminToken = r.data.token;
+    store.set(adminToken);
+    return r.data;
+  });
+export const checkAdminSession = () => api.get('/admin/session').then(() => true);
+export const adminLogout = () => {
+  adminToken = null;
+  store.set(null);
+};
+
 export const getSettings = () => api.get('/settings').then((r) => r.data);
 export const updateSettings = (data) => api.put('/settings', data).then((r) => r.data);
 export const uploadHeroImage = (file) => {

@@ -7,6 +7,7 @@ Guests open a sealed invitation (two doors swing open), then scroll through the 
 ## Requirements
 - Node.js 20 (use `nvm use` — a `.nvmrc` is provided)
 - MongoDB running locally (`mongodb://127.0.0.1:27017/wedding`), or set `MONGO_URI` in `server/.env`
+- `ADMIN_PASSWORD` in `server/.env` (and in the host's environment variables) to unlock `/admin`. Without it, admin actions are refused.
 
 ## Setup
 ```bash
@@ -35,7 +36,7 @@ This starts the Express API on port 5000 and the Vite dev server on port 5173 (w
 Visit:
 - `http://localhost:5173/` — the invitation
 - `http://localhost:5173/wardrobe/haldi` (also `sangeet`, `wedding`) — outfit planners for each celebration
-- `http://localhost:5173/admin` — the admin dashboard (not linked anywhere, only reachable by URL)
+- `http://localhost:5173/admin` — the admin dashboard (not linked anywhere; asks for `ADMIN_PASSWORD`, and a sign-in lasts 7 days)
 
 ## What lives where
 - **Admin dashboard (database):** couple names, tagline, countdown time, RSVP deadline, hero image, story intro, venue and map pin, events (with theme, dress code and wardrobe planner), gallery photos, RSVPs (with CSV export) and guest notes.

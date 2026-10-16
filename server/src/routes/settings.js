@@ -2,6 +2,7 @@ import { Router } from 'express';
 import SiteSettings from '../models/SiteSettings.js';
 import { upload } from '../middleware/upload.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
+import { requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -18,14 +19,14 @@ router.get('/', asyncHandler(async (req, res) => {
   res.json(settings);
 }));
 
-router.put('/', asyncHandler(async (req, res) => {
+router.put('/', requireAdmin, asyncHandler(async (req, res) => {
   const settings = await getOrCreateSettings();
   Object.assign(settings, req.body);
   await settings.save();
   res.json(settings);
 }));
 
-router.post('/hero-image', upload.single('file'), asyncHandler(async (req, res) => {
+router.post('/hero-image', requireAdmin, upload.single('file'), asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'A file is required' });
   const settings = await getOrCreateSettings();
   settings.heroImageUrl = `/uploads/${req.file.filename}`;
@@ -33,7 +34,7 @@ router.post('/hero-image', upload.single('file'), asyncHandler(async (req, res) 
   res.json(settings);
 }));
 
-router.post('/map-file', upload.single('file'), asyncHandler(async (req, res) => {
+router.post('/map-file', requireAdmin, upload.single('file'), asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'A file is required' });
   const settings = await getOrCreateSettings();
   settings.mapFileUrl = `/uploads/${req.file.filename}`;

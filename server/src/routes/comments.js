@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import Comment from '../models/Comment.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
+import { requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -15,7 +16,7 @@ router.post('/', asyncHandler(async (req, res) => {
   res.status(201).json(comment);
 }));
 
-router.delete('/:id', asyncHandler(async (req, res) => {
+router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
   await Comment.findByIdAndDelete(req.params.id);
   res.json({ ok: true });
 }));
