@@ -2,14 +2,12 @@ import { useState } from 'react';
 import AdminSettings from './AdminSettings';
 import AdminEvents from './AdminEvents';
 import AdminRsvps from './AdminRsvps';
-import AdminPhotos from './AdminPhotos';
 import AdminComments from './AdminComments';
 
 const TABS = [
   { id: 'settings', label: 'Site Settings' },
   { id: 'events', label: 'Events' },
   { id: 'rsvps', label: 'RSVPs' },
-  { id: 'photos', label: 'Photos' },
   { id: 'comments', label: 'Comments' },
 ];
 
@@ -44,7 +42,6 @@ export default function AdminDashboard() {
           {tab === 'settings' && <AdminSettings />}
           {tab === 'events' && <AdminEvents />}
           {tab === 'rsvps' && <AdminRsvps />}
-          {tab === 'photos' && <AdminPhotos />}
           {tab === 'comments' && <AdminComments />}
         </div>
       </div>

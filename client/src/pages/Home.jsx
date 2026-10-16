@@ -11,11 +11,10 @@ import Interlude from '../components/Interlude';
 import Events from '../components/Events';
 import Travel from '../components/Travel';
 import Venue from '../components/Venue';
-import Gallery from '../components/Gallery';
 import RsvpForm from '../components/RsvpForm';
 import Explore from '../components/Explore';
 import Footer from '../components/Footer';
-import { getSettings, getEvents, getPhotos } from '../lib/api';
+import { getSettings, getEvents } from '../lib/api';
 import { formatDayRange, venueCity } from '../lib/format';
 import { scrollToId, scrollToY } from '../lib/scroll';
 
@@ -65,7 +64,6 @@ export default function Home() {
   const fontsReady = useFontsReady();
   const [settings, setSettings] = useState(null);
   const [events, setEvents] = useState([]);
-  const [photos, setPhotos] = useState([]);
   const [loaded, setLoaded] = useState(false);
   // Deep links (e.g. "/#rsvp" from a wardrobe page) and returning visitors skip the doors.
   const [gateOpen, setGateOpen] = useState(() => !location.hash && session.get(GATE_KEY) !== '1');
@@ -74,10 +72,9 @@ export default function Home() {
   const revealed = opened && fontsReady;
 
   useEffect(() => {
-    Promise.allSettled([getSettings(), getEvents(), getPhotos()]).then(([s, e, p]) => {
+    Promise.allSettled([getSettings(), getEvents()]).then(([s, e]) => {
       if (s.status === 'fulfilled') setSettings(s.value);
       if (e.status === 'fulfilled') setEvents(e.value);
-      if (p.status === 'fulfilled') setPhotos(p.value);
       setLoaded(true);
     });
   }, []);
@@ -141,7 +138,7 @@ export default function Home() {
         )}
       </AnimatePresence>
       <ScrollProgress visible={revealed} />
-      <Navbar settings={settings} showGallery={photos.length > 0} revealed={revealed} />
+      <Navbar settings={settings} revealed={revealed} />
       <main className="relative z-10">
         <Hero settings={settings} events={events} revealed={revealed} />
         <WelcomeLetter settings={settings} />
@@ -150,7 +147,6 @@ export default function Home() {
         <Events events={events} settings={settings} />
         <Travel />
         <Venue settings={settings} events={events} />
-        {photos.length > 0 && <Gallery photos={photos} />}
         <RsvpForm events={events} settings={settings} />
         <Explore />
       </main>

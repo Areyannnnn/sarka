@@ -3,12 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Monogram } from './Ornaments';
 import { lockScroll, scrollToId } from '../lib/scroll';
 
-const BASE_LINKS = [
+const LINKS = [
   { id: 'story', label: 'Our story' },
   { id: 'events', label: 'Celebrations' },
   { id: 'travel', label: 'Travel' },
   { id: 'venue', label: 'Venue' },
-  { id: 'gallery', label: 'Moments' },
   { id: 'rsvp', label: 'RSVP' },
   { id: 'explore', label: 'Explore' },
 ];
@@ -34,10 +33,10 @@ function useActiveSection(idsKey) {
   return active;
 }
 
-export default function Navbar({ settings, showGallery, revealed }) {
+export default function Navbar({ settings, revealed }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const links = BASE_LINKS.filter((l) => l.id !== 'gallery' || showGallery);
+  const links = LINKS;
   const active = useActiveSection(links.map((l) => l.id).join(','));
 
   useEffect(() => {

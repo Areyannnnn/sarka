@@ -8,7 +8,6 @@ import { fileURLToPath } from 'url';
 import settingsRouter from './routes/settings.js';
 import eventsRouter from './routes/events.js';
 import rsvpsRouter from './routes/rsvps.js';
-import photosRouter from './routes/photos.js';
 import commentsRouter from './routes/comments.js';
 import { errorHandler } from './middleware/asyncHandler.js';
 
@@ -24,7 +23,6 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.use('/api/settings', settingsRouter);
 app.use('/api/events', eventsRouter);
 app.use('/api/rsvps', rsvpsRouter);
-app.use('/api/photos', photosRouter);
 app.use('/api/comments', commentsRouter);
 
 app.use(errorHandler);

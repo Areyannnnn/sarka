@@ -24,16 +24,6 @@ export const getRsvps = () => api.get('/rsvps').then((r) => r.data);
 export const createRsvp = (data) => api.post('/rsvps', data).then((r) => r.data);
 export const deleteRsvp = (id) => api.delete(`/rsvps/${id}`).then((r) => r.data);
 
-export const getPhotos = () => api.get('/photos').then((r) => r.data);
-export const uploadPhoto = (file, caption, category) => {
-  const form = new FormData();
-  form.append('image', file);
-  if (caption) form.append('caption', caption);
-  if (category) form.append('category', category);
-  return api.post('/photos', form).then((r) => r.data);
-};
-export const deletePhoto = (id) => api.delete(`/photos/${id}`).then((r) => r.data);
-
 export const getComments = (eventId) =>
   api.get('/comments', { params: eventId ? { eventId } : {} }).then((r) => r.data);
 export const createComment = (data) => api.post('/comments', data).then((r) => r.data);
