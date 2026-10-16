@@ -43,8 +43,6 @@ const settings = {
   heroImageUrl: '/images/story/proposal-hero.webp',
   story:
     'We grew up together, built dreams in different cities, and kept finding our way back to one another.',
-  welcomeNote:
-    'Our story began in a school in Mumbai, and it has travelled through Illinois, Buffalo, San Francisco and Philadelphia before finding its way home.\n\nNow we would love nothing more than to have you beside us by the lake in Daman — for two days of colour, music and celebration, as we begin our next chapter together.',
   venueName: 'Praveg Lake Resort',
   venueAddress: 'Kachigam, Daman, India',
   lat: 20.383945,

@@ -84,18 +84,6 @@ export default function AdminSettings() {
       ))}
 
       <label className="flex flex-col gap-1">
-        <span className="text-sm text-gray-600">
-          Welcome Letter (shown under the hero, signed with the couple's names; leave a blank line between paragraphs)
-        </span>
-        <textarea
-          rows={7}
-          value={settings.welcomeNote ?? ''}
-          onChange={update({ key: 'welcomeNote', type: 'text' })}
-          className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
-        />
-      </label>
-
-      <label className="flex flex-col gap-1">
         <span className="text-sm text-gray-600">Our Story (introduction above the timeline)</span>
         <textarea
           rows={5}

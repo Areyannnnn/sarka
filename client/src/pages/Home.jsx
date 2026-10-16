@@ -5,7 +5,6 @@ import IntroGate from '../components/IntroGate';
 import ScrollProgress from '../components/ScrollProgress';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
-import WelcomeLetter from '../components/WelcomeLetter';
 import Story from '../components/Story';
 import Interlude from '../components/Interlude';
 import Events from '../components/Events';
@@ -141,7 +140,6 @@ export default function Home() {
       <Navbar settings={settings} revealed={revealed} />
       <main className="relative z-10">
         <Hero settings={settings} events={events} revealed={revealed} settled={!gateOpen} />
-        <WelcomeLetter settings={settings} />
         <Story settings={settings} />
         <Interlude settings={settings} events={events} />
         <Events events={events} settings={settings} />

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PiCaretLeftLight, PiCaretRightLight, PiXLight } from 'react-icons/pi';
 import { lockScroll } from '../lib/scroll';
 
-// items: [{ src, alt, caption? }]
+// items: [{ src, alt }]
 export default function Lightbox({ items, index, onClose, onIndex }) {
   const open = index !== null && index >= 0;
   const closeRef = useRef(null);
@@ -96,11 +96,6 @@ export default function Lightbox({ items, index, onClose, onIndex }) {
                 alt={item.alt}
                 className="max-h-[80vh] max-w-[92vw] rounded-lg object-contain shadow-2xl"
               />
-              {(item.caption || item.alt) && (
-                <figcaption className="mt-4 max-w-xl text-center font-display text-lg italic text-ivory-200/90">
-                  {item.caption || item.alt}
-                </figcaption>
-              )}
             </motion.figure>
           </AnimatePresence>
         </motion.div>

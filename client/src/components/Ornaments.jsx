@@ -638,19 +638,6 @@ export function DriftingPetals({ count = 12 }) {
   );
 }
 
-// A small pressed rose with jasmine and leaves, tucked into a corner of the letter.
-export function PressedRose({ className = '' }) {
-  return (
-    <svg viewBox="-40 -40 80 80" className={className} aria-hidden="true">
-      <use href="#sage-leaf" x="-6" y="-2" width="12" height="28" transform="rotate(-55)" />
-      <use href="#sage-leaf" x="-5" y="-2" width="11" height="26" transform="rotate(38)" />
-      <use href="#gold-leaf" x="-4" y="-2" width="9" height="20" transform="rotate(150)" />
-      <use href="#rose-blush" x="-18" y="-18" width="36" height="36" />
-      <use href="#jasmine" x="6" y="-27" width="20" height="20" />
-    </svg>
-  );
-}
-
 export function CornerFlourish({ className = '' }) {
   return (
     <svg viewBox="0 0 80 80" className={className} aria-hidden="true">

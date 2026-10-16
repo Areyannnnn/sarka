@@ -9,8 +9,6 @@ const siteSettingsSchema = new mongoose.Schema(
     rsvpDeadline: { type: Date, default: null },
     heroImageUrl: { type: String, default: '' },
     story: { type: String, default: 'Our story begins...' },
-    // The couple's letter to guests, shown under the hero and signed with their names.
-    welcomeNote: { type: String, default: '' },
     venueName: { type: String, default: '' },
     venueAddress: { type: String, default: '' },
     lat: { type: Number, default: 0 },

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { motion, useScroll, useSpring, useInView, useMotionValue, useTransform, animate } from 'framer-motion';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { motion, useScroll, useSpring, useInView, useMotionValue, useMotionValueEvent, useTransform, animate } from 'framer-motion';
 import { PiAirplaneTiltLight } from 'react-icons/pi';
 import { Heart, SectionHeading } from './Ornaments';
 import Lightbox from './Lightbox';
@@ -10,21 +10,19 @@ const EASE = [0.22, 1, 0.36, 1];
 const TILTS = { tall: [-3, 3.5, -2], pair: [-2, 4] };
 const TAPES = ['left-1/2 -translate-x-1/2 rotate-[-4deg]', 'left-6 rotate-[-8deg]', 'right-6 rotate-[7deg]'];
 
-const STORY_PHOTOS = STORY_CHAPTERS.flatMap((c) =>
-  (c.collage?.photos ?? []).map((p) => ({ ...p, caption: `${c.title} — ${p.alt}` }))
-);
+const STORY_PHOTOS = STORY_CHAPTERS.flatMap((c) => c.collage?.photos ?? []);
 const PHOTO_OFFSETS = STORY_CHAPTERS.reduce(
   (acc, c, i) => [...acc, acc[i] + (c.collage?.photos.length ?? 0)],
   [0]
 );
 
 // A real polaroid: thick bottom edge with a handwritten note, held on with a strip of washi tape.
-function Polaroid({ photo, tilt, aspect, index = 0, className = '', captionClassName = 'text-center', delay = 0, onOpen }) {
+function Polaroid({ photo, tilt, aspect, index = 0, className = '', delay = 0, onOpen }) {
   return (
     <motion.button
       type="button"
       onClick={onOpen}
-      className={`group relative block cursor-zoom-in bg-white p-2 pb-9 shadow-photo sm:p-2.5 sm:pb-12 ${className}`}
+      className={`group relative block cursor-zoom-in bg-white p-2 pb-6 shadow-photo sm:p-2.5 sm:pb-8 ${className}`}
       initial={{ opacity: 0, y: 60, rotate: tilt * 2.5 }}
       whileInView={{ opacity: 1, y: 0, rotate: tilt }}
       whileHover={{ rotate: 0, scale: 1.04, zIndex: 20 }}
@@ -46,14 +44,6 @@ function Polaroid({ photo, tilt, aspect, index = 0, className = '', captionClass
           style={{ objectPosition: photo.focus }}
         />
       </span>
-      {photo.note && (
-        <span
-          className={`absolute inset-x-3 bottom-1.5 truncate font-hand text-[1.2rem] leading-none text-ink-700 sm:bottom-3 sm:text-[1.5rem] ${captionClassName}`}
-          style={{ rotate: `${-tilt * 0.35}deg` }}
-        >
-          {photo.note}
-        </span>
-      )}
     </motion.button>
   );
 }
@@ -64,9 +54,11 @@ function Collage({ collage, onOpen }) {
   return (
     <figure>
       {/* On phones the collage spans the full width, so the caption steps past the timeline line. */}
-      <figcaption className="mb-7 pl-[76px] font-script text-[1.8rem] leading-tight text-gold-600 sm:pl-0 sm:text-[2.4rem]">
-        {collage.caption}
-      </figcaption>
+      {collage.caption && (
+        <figcaption className="mb-7 pl-[76px] font-script text-[1.8rem] leading-tight text-gold-600 sm:pl-0 sm:text-[2.4rem]">
+          {collage.caption}
+        </figcaption>
+      )}
       {collage.layout === 'tall' ? (
         <div className="grid grid-cols-[1.15fr_1fr] items-center gap-4 sm:gap-6">
           <Polaroid photo={a} index={0} tilt={tilt[0]} aspect="aspect-[3/4.2]" className="row-span-2" onOpen={() => onOpen(0)} />
@@ -75,7 +67,7 @@ function Collage({ collage, onOpen }) {
         </div>
       ) : (
         <div className="relative pb-2">
-          <Polaroid photo={a} index={0} tilt={tilt[0]} aspect="aspect-[3/2]" className="w-[88%]" captionClassName="pr-[42%] text-left" onOpen={() => onOpen(0)} />
+          <Polaroid photo={a} index={0} tilt={tilt[0]} aspect="aspect-[3/2]" className="w-[88%]" onOpen={() => onOpen(0)} />
           <Polaroid photo={b} index={2} tilt={tilt[1]} aspect="aspect-[4/3]" className="-mt-16 ml-auto w-[54%] sm:-mt-24" delay={0.15} onOpen={() => onOpen(1)} />
         </div>
       )}
@@ -83,16 +75,134 @@ function Collage({ collage, onOpen }) {
   );
 }
 
-function BoardingPass({ names }) {
-  const [him, her] = names;
+// True once the travelling heart has reached the top edge of `ref`. `progress` is the same 0–1
+// value that moves the heart down the timeline. Positions are re-measured on resize, and again
+// whenever the heart gets close, in case the layout shifted (fonts, images) since.
+function useHeartReached(ref, progress, timelineRef) {
+  const at = useRef(Infinity);
+  const [reached, setReached] = useState(false);
+
+  const measure = useCallback(() => {
+    const timeline = timelineRef.current;
+    if (!timeline || !ref.current) return;
+    const t = timeline.getBoundingClientRect();
+    at.current = (ref.current.getBoundingClientRect().top - t.top) / t.height;
+  }, [ref, timelineRef]);
+
+  useEffect(() => {
+    const timeline = timelineRef.current;
+    if (!timeline) return undefined;
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(timeline);
+    return () => observer.disconnect();
+  }, [measure, timelineRef]);
+
+  useMotionValueEvent(progress, 'change', (v) => {
+    if (Math.abs(v - at.current) < 0.04) measure();
+    const now = v >= at.current;
+    setReached((was) => (was === now ? was : now));
+  });
+
+  return reached;
+}
+
+// A plane glyph pointing right, so it can be turned to follow a path.
+const PLANE_PATH =
+  'M22 12c0-1-1-1.5-2-1.5h-6L9.5 3h-2L10 10.5H5L3.2 8H2l1 4-1 4h1.2L5 13.5h5L7.5 21h2l4.5-7.5h6c1 0 2-.5 2-1.5z';
+
+// One lap around the boarding pass, leaving a gold contrail, then both fade away. Plays once.
+function PlaneLoop({ play }) {
+  const boxRef = useRef(null);
+  const pathRef = useRef(null);
+  const [size, setSize] = useState(null);
+  const [done, setDone] = useState(false);
+  const t = useMotionValue(0);
+
+  useEffect(() => {
+    const parent = boxRef.current?.parentElement;
+    if (!parent) return undefined;
+    const observer = new ResizeObserver(() => setSize({ w: parent.offsetWidth, h: parent.offsetHeight }));
+    observer.observe(parent);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!play || !size || done) return undefined;
+    const controls = animate(t, 1, { duration: 3.4, ease: [0.45, 0, 0.3, 1], onComplete: () => setDone(true) });
+    return () => controls.stop();
+  }, [play, size, done, t]);
+
+  const pose = useTransform(t, (v) => {
+    const path = pathRef.current;
+    if (!path) return 'translate(-100px, -100px)';
+    const length = path.getTotalLength();
+    const a = path.getPointAtLength(v * length);
+    const b = path.getPointAtLength(Math.min(length, v * length + 1));
+    const angle = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+    return `translate(${a.x}px, ${a.y}px) rotate(${angle}deg)`;
+  });
+
+  // The loop hugs the ticket: a tighter margin on phones keeps it on screen.
+  const m = size && size.w < 400 ? 14 : 30;
+  const W = size ? size.w + 2 * m : 0;
+  const H = size ? size.h + 2 * m : 0;
+  const e = 12;
+  const r = 30;
+  const d = size
+    ? `M ${e} ${H / 2} V ${e + r} A ${r} ${r} 0 0 1 ${e + r} ${e} H ${W - e - r} A ${r} ${r} 0 0 1 ${W - e} ${e + r} V ${H - e - r} A ${r} ${r} 0 0 1 ${W - e - r} ${H - e} H ${e + r} A ${r} ${r} 0 0 1 ${e} ${H - e - r} Z`
+    : '';
+
   return (
     <motion.div
+      ref={boxRef}
+      aria-hidden="true"
+      className="pointer-events-none absolute"
+      style={{ left: -m, top: -m, width: W, height: H }}
+      initial={false}
+      animate={{ opacity: done ? 0 : 1 }}
+      transition={{ duration: 1.2, delay: done ? 0.2 : 0 }}
+    >
+      {size && (
+        <>
+          <svg width={W} height={H} className="absolute inset-0 overflow-visible">
+            <path ref={pathRef} d={d} fill="none" stroke="none" />
+            <motion.path
+              d={d}
+              fill="none"
+              stroke="#cfa75e"
+              strokeWidth="1.3"
+              strokeLinecap="round"
+              strokeOpacity="0.75"
+              style={{ pathLength: t }}
+            />
+          </svg>
+          {play && (
+            <motion.svg viewBox="0 0 24 24" className="absolute left-[-12px] top-[-12px] h-6 w-6 text-forest-800" style={{ transform: pose }}>
+              <path d={PLANE_PATH} fill="currentColor" />
+            </motion.svg>
+          )}
+        </>
+      )}
+    </motion.div>
+  );
+}
+
+function BoardingPass({ names, progress, timelineRef }) {
+  const [him, her] = names;
+  const ref = useRef(null);
+  const reached = useHeartReached(ref, progress, timelineRef);
+  // The tilt lives on this wrapper so the plane's loop tilts with the ticket.
+  return (
+    <motion.div
+      ref={ref}
       initial={{ opacity: 0, y: 50, rotate: -7 }}
       whileInView={{ opacity: 1, y: 0, rotate: -2.5 }}
       viewport={{ once: true, amount: 0.4 }}
       transition={{ duration: 1.1, ease: EASE }}
-      className="relative mx-auto w-full max-w-md overflow-hidden rounded-2xl bg-ivory-50 shadow-[0_34px_60px_-30px_rgba(19,58,43,0.6)] ring-1 ring-gold-300/70"
+      className="relative mx-auto w-full max-w-md"
     >
+      <div className="relative overflow-hidden rounded-2xl bg-ivory-50 shadow-[0_34px_60px_-30px_rgba(19,58,43,0.6)] ring-1 ring-gold-300/70">
       <div className="flex items-center justify-between bg-forest-900 px-6 py-3 text-ivory-100">
         <span className="eyebrow text-[0.58rem] text-gold-200">Boarding pass</span>
         <span className="font-display text-lg italic text-ivory-100/90">Long-distance air</span>
@@ -105,9 +215,11 @@ function BoardingPass({ names }) {
         </div>
         <div className="relative h-6">
           <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-gold-400" />
+          {/* A full-width track moved by transform (percent of its own width) rather than `left`,
+              so the loop never triggers layout. */}
           <motion.span
-            className="absolute top-1/2 -translate-y-1/2 text-xl text-forest-700"
-            animate={{ left: ['0%', '82%'] }}
+            className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-xl text-forest-700"
+            animate={{ x: ['0%', '82%'] }}
             transition={{ duration: 3.4, repeat: Infinity, repeatDelay: 0.8, ease: 'easeInOut' }}
           >
             <PiAirplaneTiltLight />
@@ -137,6 +249,8 @@ function BoardingPass({ names }) {
         aria-hidden="true"
         className="mx-6 mb-6 h-10 bg-[repeating-linear-gradient(90deg,#16201c_0_2px,transparent_2px_5px,#16201c_5px_6px,transparent_6px_9px,#16201c_9px_12px,transparent_12px_14px)] opacity-80"
       />
+      </div>
+      <PlaneLoop play={reached} />
     </motion.div>
   );
 }
@@ -209,31 +323,49 @@ function DistanceMeter() {
   );
 }
 
-function Marker({ number }) {
+// Each chapter's number lights up as the travelling heart reaches it, and dims again if the
+// reader scrolls back above it.
+function Marker({ number, progress, timelineRef }) {
+  const ref = useRef(null);
+  const reached = useHeartReached(ref, progress, timelineRef);
+
   return (
     <motion.div
-      className="relative z-10 grid h-14 w-14 place-items-center rounded-full border border-gold-400 bg-ivory-100 font-display text-xl italic text-forest-800 shadow-[0_0_0_8px_var(--color-ivory-100)]"
-      initial={{ scale: 0.5, opacity: 0 }}
-      whileInView={{ scale: 1, opacity: 1 }}
-      viewport={{ once: true, amount: 1 }}
-      transition={{ type: 'spring', stiffness: 220, damping: 15 }}
+      ref={ref}
+      className="relative z-10 grid h-14 w-14 place-items-center rounded-full border font-display text-xl italic shadow-[0_0_0_8px_var(--color-ivory-100)]"
+      initial={false}
+      animate={
+        reached
+          ? { scale: [1, 1.32, 1], backgroundColor: '#1b4b37', color: '#f7eedb', borderColor: '#cfa75e' }
+          : { scale: 1, backgroundColor: '#fbf7ef', color: '#1b4b37', borderColor: '#cfa75e' }
+      }
+      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
     >
       {number}
       <span aria-hidden="true" className="absolute -inset-1.5 rounded-full border border-gold-300/50" />
+      {reached && (
+        <motion.span
+          aria-hidden="true"
+          className="absolute inset-0 rounded-full border-2 border-gold-400"
+          initial={{ scale: 1, opacity: 0.8 }}
+          animate={{ scale: 1.9, opacity: 0 }}
+          transition={{ duration: 0.9, ease: 'easeOut' }}
+        />
+      )}
     </motion.div>
   );
 }
 
-function Chapter({ chapter, flip, names, onOpen }) {
+function Chapter({ chapter, flip, names, onOpen, progress, timelineRef }) {
   let media = null;
   if (chapter.collage) media = <Collage collage={chapter.collage} onOpen={onOpen} />;
-  else if (chapter.feature === 'boarding-pass') media = <BoardingPass names={names} />;
+  else if (chapter.feature === 'boarding-pass') media = <BoardingPass names={names} progress={progress} timelineRef={timelineRef} />;
   else if (chapter.feature === 'distance') media = <DistanceMeter />;
 
   return (
     <li className="grid grid-cols-[56px_1fr] gap-x-5 gap-y-12 lg:grid-cols-[1fr_96px_1fr] lg:gap-x-12">
       <div className="col-start-1 row-start-1 flex justify-center lg:col-start-2">
-        <Marker number={chapter.number} />
+        <Marker number={chapter.number} progress={progress} timelineRef={timelineRef} />
       </div>
       <motion.div
         className={`col-start-2 row-start-1 pt-1 ${flip ? 'lg:col-start-3' : 'lg:col-start-1 lg:text-right'}`}
@@ -308,6 +440,8 @@ export default function Story({ settings }) {
               chapter={chapter}
               flip={i % 2 === 1}
               names={names}
+              progress={progress}
+              timelineRef={timelineRef}
               onOpen={(k) => setLightbox(PHOTO_OFFSETS[i] + k)}
             />
           ))}

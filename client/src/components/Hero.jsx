@@ -142,10 +142,10 @@ export default function Hero({ settings, events, revealed, settled = true }) {
               Kindly RSVP
             </a>
             <a
-              href="#welcome"
+              href="#story"
               className="font-display text-xl italic text-forest-800 underline decoration-gold-400/70 decoration-1 underline-offset-[6px] transition hover:text-forest-600 hover:decoration-gold-500"
             >
-              Read our note to you
+              Read our story
             </a>
           </motion.div>
         </motion.div>
